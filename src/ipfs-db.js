@@ -65,7 +65,7 @@ class IpfsDB{
     const i = new IpfsDB('test')
     await i.start()
 
-    i.add({
+    await i.add({
         contentPath:"test1",
         content:"this is cool"
     })
