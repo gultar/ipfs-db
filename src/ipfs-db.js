@@ -66,22 +66,22 @@ class IpfsDB{
     await i.start()
 
     i.add({
-        contentPath:"mouffette.txt",
-        content:"this is a muppet show and everyone involved is on acid"
+        contentPath:"test1",
+        content:"this is cool"
     })
 
     setTimeout(async ()=>{
         await i.add({
-            contentPath:"moutarde.txt",
+            contentPath:"test2",
             content:"this is SPARTA"
         })
        await i.add({
-            contentPath:"moumoute.txt",
-            content:"j'ai une moumoute"
+            contentPath:"test3",
+            content:"this is SPARTA x2"
         })
         await i.add({
-            contentPath:"mouffette.txt",
-            content:"everyone involved is on acid and the muppets are fucking"
+            contentPath:"test4",
+            content:"this is SPARTA x3"
         })
 
         
