@@ -17,19 +17,21 @@ export default class Database{
                     data_format       : this.database._FORMAT_JSON,
                 }
     
+                //If there are additional options on rocket-store, adds them
+                //to the default options
                 if(this.options){
                     defaultOptions = { ...defaultOptions, ...this.options }
                 }
     
                 await this.database.options(defaultOptions);
                 this.isConfigSet = true;
-                return true
+                return {success:"Database has already been initialized"};
             }catch(e){
                 throw new Error(e.message)
             }
         }
 
-        return "Database has already been initialized";
+        return {already:"Database has already been initialized"};
 
         
     }
@@ -39,8 +41,8 @@ export default class Database{
         try{
             
             await this.init()
-            if(!key) return {error:"Cannot put to Database: key is undefined"}
-            if(!record) return {error:"Cannot put to Database: record is undefined"}
+            if(!key) throw new Error("Cannot put to Database: key is undefined")
+            if(!record) throw new Error("Cannot put to Database: record is undefined")
     
             let written = await this.database.post(this.name, key, record)
             return written
@@ -50,15 +52,15 @@ export default class Database{
         
     }
 
+    //To be deprecated
     async add(entry){
         try{
             await this.init()
             if(!entry._id && entry.id) entry._id == entry.id
-            if(!entry._id && !entry.id) return {error:"Cannot add to Database: Id is undefined"}
+            if(!entry._id && !entry.id) throw new Error("Cannot add to Database: Id is undefined")
 
-                            let written = await this.database.post(this.name, entry._id, entry)
-                
-                return written
+            let written = await this.database.post(this.name, entry._id, entry)
+            return written
             
         }catch(e){
             throw new Error(e.message)
@@ -69,7 +71,7 @@ export default class Database{
     async get(key){
         try{
             await this.init()
-            if(!key) return {error:"Cannot read to Database: Id is undefined"}
+            if(!key) throw new Error("Cannot read to Database: Id is undefined")
     
             let entry = await this.database.get(this.name, key);
             
@@ -105,7 +107,6 @@ export default class Database{
         try{
             await this.init()
             let entry = await this.database.get(this.name, '*');
-            let container = {}
             let results = entry.key
     
            
@@ -125,7 +126,7 @@ export default class Database{
         try{
             await this.init()
 
-            if(!key) return { error:'ERROR: Could not delete because ID is undefined' }
+            if(!key) throw new Error('ERROR: Could not delete because ID is undefined') 
             else {
                 let deleted = await this.database.delete(this.name, key)
                 return deleted
