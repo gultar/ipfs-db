@@ -18,89 +18,99 @@ import Database from './db.js'
  */
 class IpfsDB{
     constructor(dbName="IpfsDB"){
-        this.localDB = new Database(dbName)
-        this.cache = {}
+        this.cache = new Database(dbName)
         this.ipfs = {}
         this.started = false;
     }
 
     async start(){
         this.ipfs = await IPFS.create()
-
-        // const all = await this.localDB.getAll()
-        // for await(let listOfVersions of all){
-            
-        //     const topElement = listOfVersions[0]
-        //     this.cache[topElement.path] = listOfVersions
-        // }
+        this.cache.init()
+        this.cidStore = {} //{ "filename":"CID object" }
+        this.fetchCachedCIDs()
         this.started = true
         return this.ipfs
     }
 
-    async cat(cid){
+    async fetchCachedCIDs(){
+        const cachedCIDs = await this.cache.get('CachedCIDs');
+        if(cachedCIDs === false) this.cidStore = {}
+        else this.cidStore = cachedCIDs
+
+        return;
+    }
+
+    async saveCID(path, cid){
+        this.cidStore[path] = cid.toString()
+        const savedCache = await this.saveCIDsCache(this.cidStore)
+
+        return savedCache
+    }
+
+    async saveCIDsCache(cids){
+        const saved = await this.cache.put('CachedCIDs', cids)
+        return saved
+    }
+
+    async getFromIpfs(cid){
         const decoder = new TextDecoder()
-        let text = ''
+        let content = ''
 
         for await (const chunk of this.ipfs.cat(cid)) {
-            
-            text += decoder.decode(chunk, {
-            stream: true
-            })
+            content += decoder.decode(chunk, { stream: true })
         }
 
-        return text
+        return content
     }
 
-    async getCurrentIpfsEntries(){
-        //From array of filenames or paths, retrieve most 
-        //up to date versions of IPFS files
-        //This might take a while to run, so only run on startup
+    async addToIpfs(contentPath, content){
+        return await this.ipfs.add({
+            path: contentPath,
+            content: content,
+        });
     }
 
-    async add({ contentPath, content }){
+    validateContentFormat(content){
+        if(typeof content === 'object'){
+            return JSON.stringify(content)
+        }else if(typeof content === 'number'){
+            return content.toString()
+        }else if(content === undefined){
+            throw new Error('Content to be added to IPFS cannot be undefined')
+        }
+
+        return content
+
+        
+    }
+
+    async add({ path, content }){
         if(!this.started) throw new Error('IpfsDB is not started')
         
         try{
-            const { path, cid } = await this.ipfs.add({
-                path: contentPath,
-                content: content,
-            });
-            
-            const newEntry = {
-                content:content,
-                timestamp:Date.now(),
-                cid:cid
-            }
-
-            if(!this.cache[path]) this.cache[path] = []
-            this.cache[path].unshift(newEntry)
-
-            await this.localDB.put(path, newEntry)
+            const validatedContent = this.validateContentFormat(content)
+            const { cid } = await this.addToIpfs(path, validatedContent)
+            const saved = await this.saveCID(path, cid)
 
             return { 
                 success:`Item ${path} was successfully added to IPFS`,
-                ...newEntry
+                content:content,
+                cid:cid
             }
 
         }catch(e){
-            throw e
+            console.error(e)
         }
         
     }
 
-    async get(key){
-        try{
-            if(this.cache[key]) return this.cache[key]
-            //Fall back on localDB file entries
-            // const entry = await this.localDB.get(key)
-            // if(entry) return entry
-            //If not, fallback on calling IPFS
-            const entryFromIPFS = await this.cat(key)
-            
-            return entryFromIPFS
-        }catch(e){
-            throw e
-        }
+    async get(path){
+        const cid = this.cidStore[path]
+        if(cid === undefined) return false;
+
+        const content = await this.getFromIpfs(cid)
+
+        return content
     }
 
 }
@@ -109,33 +119,8 @@ class IpfsDB{
     const i = new IpfsDB('test')
     await i.start()
 
-    await i.add({
-        contentPath:"test1",
-        content:"this is cool"
-    })
-
     setTimeout(async ()=>{
-        await i.add({
-            contentPath:"test2",
-            content:"this is SPARTA"
-        })
-       await i.add({
-            contentPath:"test3",
-            content:"this is SPARTA x2"
-        })
-        await i.add({
-            contentPath:"test4",
-            content:"this is SPARTA x3"
-        })
 
-       const resultAdd = await i.add({
-            contentPath:"test5",
-            content:"aowidjoaiwdjoaiwdjoaiwjdoaiwjdoiajwdoiajwdoiajwdoiajwdoiajwwdoiajwdoiawjdoiajwdoiajwdoiajwdoiajwdoiajwdoiajwdoijawvv kjcjnoiwoijdd nv io oic nksoijadnj   ioawodijj   jawioawio   oinawoic  ioawonc ncciojaw  ookpakawdjn jnawuiawiuaijo jn"
-        })
-        
-        console.time("Trying to get")
-        const gotten = await i.get(resultAdd.cid)
-        console.log('Got :', gotten)
-        console.timeEnd("Trying to get")
-    }, 5000)
+    }, 2000)
+
 })()
