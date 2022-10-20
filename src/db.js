@@ -22,7 +22,7 @@ export default class Database{
             //Data storage directory is generated here
             const dataFolderCreated = await this.store.options(defaultOptions);
             this.isConfigSet = true;
-            return {success:"Database has been initialized"};
+            return true;
         }catch(e){
             console.error(e)
         }

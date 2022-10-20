@@ -1,22 +1,7 @@
 import * as IPFS from 'ipfs-core'
 import Database from './db.js'
-/**
- * Each file is stored as a path
- * And each entry is an array of the different versions of the file
- * since IPFS is immutable, and files are stored under a unique CID hash
- * Here, we are crudely mimicking this by creating an array of versions
- * for each entry. Like so:
- * 
- * {
- *   "filename":
- *     [
- *          { cid:"hashQmQ2...", version: 2.0 },
- *          { cid:"hashQmH1...", version: 1.9 },
- *          ...
- *     ]
- * }
- */
-class IpfsDB{
+
+export default class IpfsDB{
     constructor(dbName="IpfsDB"){
         this.cache = new Database(dbName)
         this.ipfs = {}
@@ -114,13 +99,3 @@ class IpfsDB{
     }
 
 }
-
-(async ()=>{
-    const i = new IpfsDB('test')
-    await i.start()
-
-    setTimeout(async ()=>{
-
-    }, 2000)
-
-})()
